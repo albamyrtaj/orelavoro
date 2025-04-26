@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapporto Mensile Ore Lavorate</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 5px;
+      font-size: 12px;
+    }
+    h1 {
+      color: #2c5282;
+      text-align: center;
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 5px;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #000;
+      padding: 2px 3px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 1px;
+      border: 1px solid #ccc;
+      font-size: 12px;
+      height: 20px;
+    }
+    .info-table {
+      margin-bottom: 5px;
+    }
+    .btn {
+      background-color: #2c5282;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+    .btn:hover {
+      background-color: #1a365d;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+    }
+    .weekend {
+      background-color: #f8f8f8;
+    }
+    @media print {
+      .no-print {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Rapporto Mensile</h1>
+
+  <div class="controls no-print">
+    <div>
+      <label for="nome">Nome:</label>
+      <input type="text" id="nome" placeholder="Nome e Cognome" style="width: 150px;">
+    </div>
+    <div>
+      <label for="mese">Mese:</label>
+      <select id="mese" onchange="generaTabella()" style="width: 150px;">
+        <option value="3">Aprile 2025</option>
+        <option value="4">Maggio 2025</option>
+        <option value="5">Giugno 2025</option>
+        <option value="6">Luglio 2025</option>
+        <option value="7">Agosto 2025</option>
+        <option value="8">Settembre 2025</option>
+        <option value="9">Ottobre 2025</option>
+        <option value="10">Novembre 2025</option>
+        <option value="11">Dicembre 2025</option>
+      </select>
+    </div>
+  </div>
+
+  <table class="info-table">
+    <tr>
+      <th>Nome/Cognome</th>
+      <th>Mese/Anno</th>
+    </tr>
+    <tr>
+      <td id="mostra-nome">-</td>
+      <td id="mostra-mese">-</td>
+    </tr>
+  </table>
+
+  <div id="tabella-container">
+    <table id="tabella-ore">
+      <thead>
+        <tr>
+          <th>Giorno</th>
+          <th>Ore ordinarie</th>
+          <th>Note</th>
+          <th>Cantiere</th>
+        </tr>
+      </thead>
+      <tbody id="tabella-body"></tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td>Tot.</td>
+          <td id="totale-ore">0 ore</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div style="text-align: center; margin-top: 5px;" id="totale-text">TOT: 0 ore</div>
+
+  <div class="controls no-print">
+    <button class="btn" onclick="salvaRapporto()">Salva come immagine</button>
+    <button class="btn" onclick="azzeraTutto()">Nuovo rapporto</button>
+  </div>
+
+  <script>
+    const giorniSettimana = ['dom', 'lun', 'mart', 'merc', 'giov', 'ven', 'sab'];
+    const mesiItaliani = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+
+    window.onload = function() {
+      caricaDatiSalvati();
+      generaTabella();
+      document.getElementById('nome').addEventListener('input', function() {
+        document.getElementById('mostra-nome').textContent = this.value;
+        salvaDatiLocalmente();
+      });
+    };
+
+    function generaTabella() {
+      const meseIndex = parseInt(document.getElementById('mese').value);
+      const anno = 2025;
+      const ultimoGiorno = new Date(anno, meseIndex + 1, 0).getDate();
+      const nomeMese = mesiItaliani[meseIndex];
+      document.getElementById('mostra-mese').textContent = nomeMese + ', ' + anno;
+
+      const tabellaBody = document.getElementById('tabella-body');
+      tabellaBody.innerHTML = '';
+
+      for (let giorno = 1; giorno <= ultimoGiorno; giorno++) {
+        const data = new Date(anno, meseIndex, giorno);
+        const giornoSettimana = giorniSettimana[data.getDay()];
+
+        const row = document.createElement('tr');
+        if (data.getDay() === 0 || data.getDay() === 6) row.className = 'weekend';
+
+        row.innerHTML = `
+          <td>${giorno} ${giornoSettimana}</td>
+          <td><input type="text" id="ore-${giorno}" class="ore-input" placeholder="-"></td>
+          <td><input type="text" id="note-${giorno}"></td>
+          <td><input type="text" id="cantiere-${giorno}"></td>
+        `;
+        tabellaBody.appendChild(row);
+      }
+      caricaDatiPerMese();
+      calcolaTotaleOre();
+      salvaDatiLocalmente();
+    }
+
+    function calcolaTotaleOre() {
+      const inputs = document.querySelectorAll('.ore-input');
+      let totale = 0;
+      inputs.forEach(i => { const val = parseFloat(i.value); if (!isNaN(val)) totale += val; });
+      document.getElementById('totale-ore').textContent = totale + ' ore';
+      document.getElementById('totale-text').textContent = 'TOT: ' + totale + ' ore';
+    }
+
+    function salvaRapporto() {
+      html2canvas(document.body, { scale: 2 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'rapporto_mensile.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+
+    function salvaDatiLocalmente() {
+      const meseIndex = document.getElementById('mese').value;
+      const dati = { nome: document.getElementById('nome').value, mese: meseIndex, giorni: {} };
+      document.querySelectorAll('.ore-input').forEach(input => {
+        const g = input.id.split('-')[1];
+        dati.giorni[g] = {
+          ore: input.value,
+          note: document.getElementById('note-' + g).value,
+          cantiere: document.getElementById('cantiere-' + g).value
+        };
+      });
+      localStorage.setItem('rapporto_2025_' + meseIndex, JSON.stringify(dati));
+      localStorage.setItem('rapporto_impostazioni', JSON.stringify({ ultimoMese: meseIndex, nome: dati.nome }));
+    }
+
+    function caricaDatiSalvati() {
+      const imp = localStorage.getItem('rapporto_impostazioni');
+      if (imp) {
+        const dati = JSON.parse(imp);
+        document.getElementById('nome').value = dati.nome || '';
+        document.getElementById('mostra-nome').textContent = dati.nome || '-';
+        if (dati.ultimoMese) document.getElementById('mese').value = dati.ultimoMese;
+      }
+    }
+
+    function caricaDatiPerMese() {
+      const meseIndex = document.getElementById('mese').value;
+      const dati = JSON.parse(localStorage.getItem('rapporto_2025_' + meseIndex) || '{}');
+      if (dati.nome) {
+        document.getElementById('nome').value = dati.nome;
+        document.getElementById('mostra-nome').textContent = dati.nome;
+      }
+      for (const g in dati.giorni || {}) {
+        if (document.getElementById('ore-' + g)) {
+          document.getElementById('ore-' + g).value = dati.giorni[g].ore || '';
+          document.getElementById('note-' + g).value = dati.giorni[g].note || '';
+          document.getElementById('cantiere-' + g).value = dati.giorni[g].cantiere || '';
+        }
+      }
+    }
+
+    function azzeraTutto() {
+      if (confirm('Sicuro di iniziare un nuovo rapporto?')) {
+        const nome = document.getElementById('nome').value;
+        generaTabella();
+        document.getElementById('nome').value = nome;
+        document.getElementById('mostra-nome').textContent = nome;
+        const meseIndex = document.getElementById('mese').value;
+        localStorage.removeItem('rapporto_2025_' + meseIndex);
+      }
+    }
+  </script>
+</body>
+</html>
