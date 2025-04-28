@@ -187,7 +187,7 @@
     }
 
     function salvaRapporto() {
-      html2canvas(document.body, { scale: 1.2 }).then(canvas => {
+      html2canvas(document.body, { scale: 0.8 }).then(canvas => {
         const link = document.createElement('a');
         link.download = 'rapporto_mensile.png';
         link.href = canvas.toDataURL('image/png');
