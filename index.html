@@ -168,15 +168,14 @@
 
         row.innerHTML = `
           <td>${giorno} ${giornoSettimana}</td>
-          <td><input type="text" id="ore-${giorno}" class="ore-input" placeholder="-"></td>
-          <td><input type="text" id="note-${giorno}"></td>
-          <td><input type="text" id="cantiere-${giorno}"></td>
+          <td><input type="text" id="ore-${giorno}" class="ore-input" placeholder="-" oninput="calcolaTotaleOre(); salvaDatiLocalmente();"></td>
+          <td><input type="text" id="note-${giorno}" oninput="salvaDatiLocalmente()"></td>
+          <td><input type="text" id="cantiere-${giorno}" oninput="salvaDatiLocalmente()"></td>
         `;
         tabellaBody.appendChild(row);
       }
       caricaDatiPerMese();
       calcolaTotaleOre();
-      salvaDatiLocalmente();
     }
 
     function calcolaTotaleOre() {
@@ -188,7 +187,7 @@
     }
 
     function salvaRapporto() {
-      html2canvas(document.body, { scale: 2 }).then(canvas => {
+      html2canvas(document.body, { scale: 1.2 }).then(canvas => {
         const link = document.createElement('a');
         link.download = 'rapporto_mensile.png';
         link.href = canvas.toDataURL('image/png');
