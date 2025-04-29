@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rapporto Mensile Ore Lavorate</title>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -132,7 +132,8 @@
   <div style="text-align: center; margin-top: 5px;" id="totale-text">TOT: 0 ore</div>
 
   <div class="controls no-print">
-    <button class="btn" onclick="salvaRapporto()">Salva come immagine</button>
+    <button class="btn" onclick="generaPDF(true)">Anteprima PDF</button>
+    <button class="btn" onclick="generaPDF(false)">Salva come PDF</button>
     <button class="btn" onclick="azzeraTutto()">Nuovo rapporto</button>
   </div>
 
@@ -162,10 +163,8 @@
       for (let giorno = 1; giorno <= ultimoGiorno; giorno++) {
         const data = new Date(anno, meseIndex, giorno);
         const giornoSettimana = giorniSettimana[data.getDay()];
-
         const row = document.createElement('tr');
         if (data.getDay() === 0 || data.getDay() === 6) row.className = 'weekend';
-
         row.innerHTML = `
           <td>${giorno} ${giornoSettimana}</td>
           <td><input type="text" id="ore-${giorno}" class="ore-input" placeholder="-" oninput="calcolaTotaleOre(); salvaDatiLocalmente();"></td>
@@ -186,13 +185,47 @@
       document.getElementById('totale-text').textContent = 'TOT: ' + totale + ' ore';
     }
 
-    function salvaRapporto() {
-      html2canvas(document.body, { scale: 0.8 }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = 'rapporto_mensile.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+    async function generaPDF(isPreview) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      const titolo = 'Rapporto Mensile';
+
+      pdf.setFontSize(16);
+      pdf.text(titolo, 105, 15, { align: 'center' });
+
+      pdf.setFontSize(11);
+      pdf.text('Nome: ' + document.getElementById('nome').value, 10, 25);
+      pdf.text('Mese/Anno: ' + document.getElementById('mostra-mese').textContent, 10, 32);
+
+      let y = 40;
+      pdf.setFontSize(10);
+      pdf.text('Giorno | Ore | Note | Cantiere', 10, y);
+      y += 5;
+
+      const inputs = document.querySelectorAll('.ore-input');
+      inputs.forEach(input => {
+        const g = input.id.split('-')[1];
+        const giorno = document.querySelector(`#ore-${g}`).closest('tr').children[0].innerText;
+        const ore = input.value;
+        const note = document.getElementById('note-' + g).value;
+        const cantiere = document.getElementById('cantiere-' + g).value;
+        pdf.text(`${giorno} | ${ore} | ${note} | ${cantiere}`, 10, y);
+        y += 5;
+        if (y > 280) {
+          pdf.addPage();
+          y = 10;
+        }
       });
+
+      const totale = document.getElementById('totale-ore').textContent;
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Totale: ' + totale, 10, y + 5);
+
+      if (isPreview) {
+        window.open(pdf.output('bloburl'), '_blank');
+      } else {
+        pdf.save('rapporto_mensile.pdf');
+      }
     }
 
     function salvaDatiLocalmente() {
